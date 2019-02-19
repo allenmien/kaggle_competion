@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 EPOCH = 1
 BATCH_SIZE = 50
 LR = 0.001
-DOWNLOAD_MINST = True
+DOWNLOAD_MINST = False
 
 train_data = torchvision.datasets.MNIST(
     root='../data/mnist/',

@@ -4,55 +4,74 @@
 @Author : Mark
 @File   : cnn_classifier_torch.py
 """
+import pandas as pd
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import Dataset, TensorDataset, DataLoader
-import pandas as pd
+from sklearn.cross_validation import train_test_split
+from torch.utils.data import TensorDataset, DataLoader
 
 BATCH_SIZE = 50
 EPOCH = 3
+LR = 0.001
 
 
 class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1, dilation=1)
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1, dilation=1)
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.liner1 = nn.Linear(in_features=7 * 7 * 32, out_features=10)
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1, dilation=1),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.ReLU()
+        )
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1, dilation=1),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.ReLU()
+        )
+        self.liner = nn.Linear(in_features=7 * 7 * 32, out_features=10)
 
     def forward(self, x):
-        conv1_out = self.conv1(x)
-        relu1_out = F.relu(conv1_out)
-        pool1_out = self.pool1(relu1_out)
-        conv2_out = self.conv2(pool1_out)
-        relu2_out = F.relu(conv2_out)
-        pool2_out = self.pool2(relu2_out)
-        out = self.liner1(pool2_out.view(50, -1))
+        x = self.conv2(self.conv1(x))
+        out = self.liner(x.reshape(-1, 7 * 7 * 32))
         return out
 
 
 train_pd = pd.read_csv('../data/train.csv')
-test_pd = pd.read_csv('../data/test.csv')
 
-train_X = torch.FloatTensor(train_pd.values[:, 1:])
-train_Y = torch.FloatTensor(train_pd.values[:, :1])
-test_X = torch.FloatTensor(test_pd.values[:, :1])
+train_x_np, test_x_np, train_y_np, test_y_np = train_test_split(train_pd.values[:, 1:],
+                                                                train_pd.values[:, :1],
+                                                                test_size=0.2)
+
+train_X = torch.FloatTensor(train_x_np)
+train_Y = torch.LongTensor(train_y_np)
+test_X = torch.FloatTensor(test_x_np)
+test_Y = torch.LongTensor(test_y_np)
 
 deal_dataset = TensorDataset(train_X, train_Y)
 train_loader = DataLoader(dataset=deal_dataset, batch_size=BATCH_SIZE, shuffle=True)
 
 model = Model()
 # print(model)
-optimizer = torch.optim.Adam(model.parameters())
+optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 loss_func = nn.CrossEntropyLoss()
 
 for epoch in range(EPOCH):
     for step, (x, y) in enumerate(train_loader):
-        out = model.forward(x.view(BATCH_SIZE, 1, 28, 28))
-        loss = loss_func(out, y)
+        out = model.forward(x.reshape(BATCH_SIZE, 1, 28, 28))
+        loss = loss_func(out, y.reshape(BATCH_SIZE))
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        if step % 10 == 0:
+            test_out = model.forward(test_X.reshape(-1, 1, 28, 28))
+            prediction = torch.argmax(test_out, dim=1)
+            correct = (prediction == test_Y.squeeze()).sum().float()
+            accuracy = (correct / (len(test_Y))).item()
+            print('epoch : {0} | step : {1} | loss = {2} | accuracy = {3}'.format(str(epoch),
+                                                                                  str(step),
+                                                                                  str(loss.item()),
+                                                                                  str(accuracy)))
+            print(prediction[:10])
+            print(test_Y.squeeze()[:10])
+torch.save(model, '../model/cnn_classifier_torch.pkl')

@@ -32,7 +32,7 @@ class Model(nn.Module):
 
     def forward(self, x):
         x = self.conv2(self.conv1(x))
-        out = self.liner(x.reshape(-1, 7 * 7 * 32))
+        out = self.liner(x.reshape(x.shape[0], -1))
         return out
 
 

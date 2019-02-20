@@ -4,12 +4,11 @@
 @Author : Mark
 @File   : cnn_classifier_torch_mofan.py
 """
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 import torch.utils.data as Data
 import torchvision
-import matplotlib.pyplot as plt
 
 # Hyper Parameters
 EPOCH = 1

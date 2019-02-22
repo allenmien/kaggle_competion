@@ -4,16 +4,15 @@
 @Author : Mark
 @File   : rnn_classifier_torch.py
 """
+import pandas as pd
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import TensorDataset, DataLoader
-import pandas as pd
 from sklearn.model_selection import train_test_split
+from torch.utils.data import TensorDataset, DataLoader
 
 BATCH_SIZE = 50
 EPOCH = 3
-LR = 0.001
+LR = 0.01
 COUNT = 0
 
 data = pd.read_csv('../data/train.csv')
@@ -35,12 +34,13 @@ train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=
 class RNN(nn.Module):
     def __init__(self):
         super(RNN, self).__init__()
-        self.lstm = nn.LSTM(input_size=28, hidden_size=128, num_layers=2)
-        self.liner = nn.Linear(128, 10)
+        self.lstm = nn.LSTM(input_size=28, hidden_size=64, num_layers=2, batch_first=True, dropout=0.2,
+                            bidirectional=True)
+        self.liner = nn.Linear(64 * 2, 10)
 
     def forward(self, X):
-        output, (h_n, c_n) = self.lstm(X)
-        pred = self.liner(output[-1, :, :])
+        output, (h_n, c_n) = self.lstm(X, None)
+        pred = self.liner(output[:, -1, :])
         return pred
 
 
@@ -51,17 +51,20 @@ loss_func = nn.CrossEntropyLoss()
 
 for epoch in range(EPOCH):
     for step, (x, y) in enumerate(train_loader):
-        pred = rnn(x.reshape(28, BATCH_SIZE, 28))
+        pred = rnn(x.reshape(-1, 28, 28))
         loss = loss_func(pred, y)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         COUNT += 1
 
-        if (COUNT - 1) % 10 == 0:
-            pred_test_y = rnn(test_x.reshape(28, -1, 28))
-            accuracy = (torch.argmax(pred_test_y) == test_y).sum().float() / test_x.shape[0]
-            print('Count : {0} | EPOCH : {1} | STEP : {2} | Loss : {3} | accuracy : {4}'.format(str(COUNT), str(epoch),
-                                                                                                str(step),
-                                                                                                str(loss.item()),
-                                                                                                str(accuracy.item())))
+        if COUNT % 10 == 0:
+            test_out = rnn.forward(test_x.reshape(-1, 28, 28))
+            prediction = torch.argmax(test_out, dim=1)
+            accuracy = ((prediction == test_y).sum().float() / test_y.shape[0]).item()
+            print('epoch : {0} | step : {1} | loss = {2} | accuracy = {3}'.format(str(epoch),
+                                                                                  str(step),
+                                                                                  str(loss.item()),
+                                                                                  str(accuracy)))
+            print(prediction[:10])
+            print(test_y.squeeze()[:10])

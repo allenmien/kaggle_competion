@@ -13,7 +13,6 @@ from torch.utils.data import TensorDataset, DataLoader
 BATCH_SIZE = 50
 EPOCH = 3
 LR = 0.01
-COUNT = 0
 
 data = pd.read_csv('../data/train.csv')
 
@@ -56,9 +55,8 @@ for epoch in range(EPOCH):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        COUNT += 1
 
-        if COUNT % 10 == 0:
+        if step % 10 == 0:
             test_out = rnn.forward(test_x.reshape(-1, 28, 28))
             prediction = torch.argmax(test_out, dim=1)
             accuracy = ((prediction == test_y).sum().float() / test_y.shape[0]).item()

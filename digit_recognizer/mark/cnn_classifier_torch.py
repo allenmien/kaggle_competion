@@ -10,8 +10,8 @@ import torch.nn as nn
 from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset, DataLoader
 
-BATCH_SIZE = 50
-EPOCH = 3
+BATCH_SIZE = 128
+EPOCH = 100
 LR = 0.001
 
 
@@ -63,7 +63,7 @@ for epoch in range(EPOCH):
         loss.backward()
         optimizer.step()
 
-        if step % 10 == 0:
+        if step % 100 == 0:
             test_out = model.forward(test_X.reshape(-1, 1, 28, 28))
             prediction = torch.argmax(test_out, dim=1)
             correct = (prediction == test_Y.squeeze()).sum().float()
@@ -74,4 +74,3 @@ for epoch in range(EPOCH):
                                                                                   str(accuracy)))
             print(prediction[:10])
             print(test_Y.squeeze()[:10])
-torch.save(model, '../model/cnn_classifier_torch.pkl')

@@ -10,7 +10,7 @@ import torch.nn as nn
 from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset, DataLoader
 
-BATCH_SIZE = 50
+BATCH_SIZE = 64
 EPOCH = 3
 LR = 0.01
 

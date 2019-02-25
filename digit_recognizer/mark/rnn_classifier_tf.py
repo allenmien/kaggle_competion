@@ -12,12 +12,12 @@ from sklearn.preprocessing import OneHotEncoder
 
 TRAIN_DATA_PATH = '../data/train.csv'
 TEST_SIZE = 0.2
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 N_STEP = 28
 N_INPUT = 28
 N_HIDDEN_UNITS = 64
 N_CLASSES = 10
-EPOCH = 3
+EPOCH = 100
 LR = 0.001
 
 
